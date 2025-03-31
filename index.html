@@ -60,6 +60,9 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <script>
+        // Update with your backend URL
+        const backendUrl = 'https://yosefbenti.github.io/tic-tac-toe-gameyo/'; // Replace with the actual backend URL
+
         document.getElementById('create-game').addEventListener('click', () => {
             const username = document.getElementById('username-create').value.trim();
             if (!username) {
@@ -67,14 +70,26 @@
                 return;
             }
 
-            fetch('/create', {
-                method: 'POST'
+            fetch(`${backendUrl}/create`, { // Updated URL
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json', // Important for the backend
+                },
+                body: JSON.stringify({ username }) // Send username if you want to store it
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to create game'); // Throw an error for bad responses
+                }
+                return response.json();
+            })
             .then(data => {
                 document.getElementById('game-id-display').textContent = `Game ID: ${data.game_id}`;
                 // Automatically join the created game
-                window.location.href = `/join/${data.game_id}?username=${username}`;
+                window.location.href = `${backendUrl}/join/${data.game_id}?username=${username}`; // Updated URL
+            })
+            .catch(error => {
+                alert(error.message); // Alert user in case of error
             });
         });
 
@@ -86,7 +101,7 @@
                 return;
             }
             if (gameId) {
-                window.location.href = `/join/${gameId}?username=${username}`;
+                window.location.href = `${backendUrl}/join/${gameId}?username=${username}`; // Updated URL
             } else {
                 alert('Please enter a game ID');
             }

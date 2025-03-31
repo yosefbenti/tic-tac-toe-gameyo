@@ -2,21 +2,24 @@ const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
 const randomString = require('random-string');
-const path = require('path'); // Include path module
+const path = require('path');
+const cors = require('cors'); // Import CORS module
 
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
+const PORT = process.env.PORT || 3000; // Use environment variable for port
 
 // Store game data in memory
 const games = {};
 
+// Middleware
+app.use(cors()); // Enable CORS
 app.use(express.static('public')); // Serve static files from the public folder
 app.use(express.json()); // Parse JSON bodies
 
 // Route for home page
 app.get('/', (req, res) => {
-    // Use path.join to create a correct file path
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
@@ -39,8 +42,7 @@ app.get('/join/:gameId', (req, res) => {
     if (!games[gameId]) {
         return res.status(404).send('Game not found');
     }
-    // Serve the game HTML page, assuming it's inside the public folder
-    res.sendFile(path.join(__dirname,'game.html'));
+    res.sendFile(path.join(__dirname, 'public', 'game.html')); // Ensure game.html is in public
 });
 
 // Socket.IO events
@@ -65,7 +67,7 @@ io.on('connection', (socket) => {
 
         // Assign player symbol (X or O)
         const symbol = game.players.length === 0 ? 'X' : 'O';
-        game.players.push({ id: socket.id, symbol, username }); // Store username here
+        game.players.push({ id: socket.id, symbol, username });
 
         socket.join(gameId);
         socket.emit('player_assigned', { symbol, username, current_player: game.current_player });
@@ -114,7 +116,7 @@ io.on('connection', (socket) => {
         // Always send the full game object with players included
         const updatedGame = {
             ...game,
-            players: game.players, // Ensuring players included
+            players: game.players,
         };
     
         io.to(gameId).emit('game_update', updatedGame);
@@ -124,14 +126,10 @@ io.on('connection', (socket) => {
         const gameId = data.game_id;
         if (games[gameId]) {
             const game = games[gameId];
-            
-            // Reset the game state
             game.board = [['', '', ''], ['', '', ''], ['', '', '']];
-            game.current_player = 'X'; // Reset to player X
+            game.current_player = 'X';
             game.winner = null;
             game.status = 'playing';
-            
-            // Notify players about the restarted game
             io.to(gameId).emit('game_restarted', game);
         }
     });
@@ -142,7 +140,7 @@ io.on('connection', (socket) => {
             const game = games[gameId];
             game.players = game.players.filter(player => player.id !== socket.id);
             if (game.players.length === 0) {
-                delete games[gameId]; // Remove game if no players
+                delete games[gameId];
             } else {
                 io.to(gameId).emit('game_update', game);
             }
@@ -150,8 +148,9 @@ io.on('connection', (socket) => {
     });
 });
 
-server.listen(3000, () => {
-    console.log('Server is running on http://localhost:3000');
+// Start the server
+server.listen(PORT, () => {
+    console.log(`Server is running on http://localhost:${PORT}`);
 });
 
 // Helper functions
