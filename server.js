@@ -40,7 +40,7 @@ app.get('/join/:gameId', (req, res) => {
         return res.status(404).send('Game not found');
     }
     // Serve the game HTML page, assuming it's inside the public folder
-    res.sendFile(path.join(__dirname, 'public', 'game.html'));
+    res.sendFile(path.join(__dirname,'game.html'));
 });
 
 // Socket.IO events
