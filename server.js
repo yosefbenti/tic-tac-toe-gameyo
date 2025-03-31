@@ -2,6 +2,7 @@ const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
 const randomString = require('random-string');
+const path = require('path'); // Include path module
 
 const app = express();
 const server = http.createServer(app);
@@ -10,12 +11,13 @@ const io = socketIo(server);
 // Store game data in memory
 const games = {};
 
-app.use(express.static('public')); // Serve static files
+app.use(express.static('public')); // Serve static files from the public folder
 app.use(express.json()); // Parse JSON bodies
 
 // Route for home page
 app.get('/', (req, res) => {
-    res.sendFile(__dirname + '/public/index.html');
+    // Use path.join to create a correct file path
+    res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 // Create a new game
@@ -37,7 +39,8 @@ app.get('/join/:gameId', (req, res) => {
     if (!games[gameId]) {
         return res.status(404).send('Game not found');
     }
-    res.sendFile(__dirname + '/public/game.html');
+    // Serve the game HTML page, assuming it's inside the public folder
+    res.sendFile(path.join(__dirname, 'public', 'game.html'));
 });
 
 // Socket.IO events
