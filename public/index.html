@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Tic-Tac-Toe - Create or Join Game</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            text-align: center;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .game-section {
+            border: 1px solid #ccc;
+            padding: 20px;
+            border-radius: 5px;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        input {
+            padding: 10px;
+            font-size: 16px;
+            width: 200px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Tic-Tac-Toe Online</h1>
+    <div class="container">
+        <div class="game-section">
+            <h2>Create New Game</h2>
+            <input type="text" id="username-create" placeholder="Enter your username">
+            <button id="create-game">Create Game</button>
+            <div id="game-id-display"></div>
+            <p>Share the game ID with your friend to play</p>
+        </div>
+        
+        <div class="game-section">
+            <h2>Join Existing Game</h2>
+            <input type="text" id="username-join" placeholder="Enter your username">
+            <input type="text" id="game-id" placeholder="Enter Game ID">
+            <button id="join-game">Join Game</button>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script>
+        document.getElementById('create-game').addEventListener('click', () => {
+            const username = document.getElementById('username-create').value.trim();
+            if (!username) {
+                alert('Please enter a username');
+                return;
+            }
+
+            fetch('/create', {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('game-id-display').textContent = `Game ID: ${data.game_id}`;
+                // Automatically join the created game
+                window.location.href = `/join/${data.game_id}?username=${username}`;
+            });
+        });
+
+        document.getElementById('join-game').addEventListener('click', () => {
+            const username = document.getElementById('username-join').value.trim();
+            const gameId = document.getElementById('game-id').value.trim();
+            if (!username) {
+                alert('Please enter a username');
+                return;
+            }
+            if (gameId) {
+                window.location.href = `/join/${gameId}?username=${username}`;
+            } else {
+                alert('Please enter a game ID');
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Tic-Tac-Toe - Game</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            text-align: center;
+        }
+        #game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+        #board {
+            display: grid;
+            grid-template-columns: repeat(3, 100px);
+            grid-template-rows: repeat(3, 100px);
+            gap: 5px;
+            margin: 20px 0;
+        }
+        .cell {
+            width: 100px;
+            height: 100px;
+            background-color: #f0f0f0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 48px;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+        .cell:hover {
+            background-color: #e0e0e0;
+        }
+        #status {
+            font-size: 24px;
+            margin: 10px 0;
+            min-height: 30px;
+        }
+        #game-id-display {
+            font-size: 20px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        #player-symbol {
+            font-size: 20px;
+            margin: 10px 0;
+            min-height: 24px;
+        }
+        #waiting-message {
+            font-size: 20px;
+            color: #666;
+        }
+        #game-over {
+            text-align: center;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            margin-top: 20px;
+            display: none;
+        }
+        #game-result {
+            color: #2c3e50;
+            font-size: 24px;
+            margin-bottom: 15px;
+        }
+        #new-game {
+            padding: 12px 24px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 18px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        #new-game:hover {
+            background-color: #2980b9;
+        }
+        .x-symbol {
+            color: #e74c3c;
+        }
+        .o-symbol {
+            color: #3498db;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <h1>Tic-Tac-Toe Online</h1>
+        <div id="game-id-display"></div>
+        <div id="player-symbol"></div>
+        <div id="status">Waiting for players...</div>
+        <div id="waiting-message">Waiting for another player to join...</div>
+        
+        <div id="board" style="display: none;">
+            <div class="cell" data-row="0" data-col="0"></div>
+            <div class="cell" data-row="0" data-col="1"></div>
+            <div class="cell" data-row="0" data-col="2"></div>
+            <div class="cell" data-row="1" data-col="0"></div>
+            <div class="cell" data-row="1" data-col="1"></div>
+            <div class="cell" data-row="1" data-col="2"></div>
+            <div class="cell" data-row="2" data-col="0"></div>
+            <div class="cell" data-row="2" data-col="1"></div>
+            <div class="cell" data-row="2" data-col="2"></div>
+        </div>
+
+        <div id="players-display">
+            <!-- Players will be displayed here -->
+        </div>
+        
+        <div id="game-over">
+            <h2 id="game-result"></h2>
+            <button id="new-game">Play Again</button>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script>
+        const gameId = window.location.pathname.split('/').pop();
+        const username = new URLSearchParams(window.location.search).get('username');
+        document.getElementById('game-id-display').textContent = `Game ID: ${gameId}`;
+
+        document.getElementById('new-game').addEventListener('click', () => {
+            socket.emit('restart', { game_id: gameId });
+        });
+                
+        const socket = io();
+        let mySymbol = '';
+        let currentPlayer = '';
+
+
+            // Reset the UI when the game is restarted
+    socket.on('game_restarted', (game) => {
+        // Reset the board UI
+        document.getElementById('board').style.display = 'grid';
+        document.getElementById('game-over').style.display = 'none';
+        
+        // Clear the board
+        document.querySelectorAll('.cell').forEach(cell => {
+            cell.textContent = '';
+            cell.className = 'cell';
+        });
+
+        // Update player symbol if it changed
+        const player = game.players.find(p => p.id === socket.id);
+        if (player) {
+            mySymbol = player.symbol;
+            document.getElementById('player-symbol').textContent = `You are player: ${mySymbol}`;
+            document.getElementById('player-symbol').className = `${mySymbol.toLowerCase()}-symbol`;
+        }
+
+        // Update status
+        currentPlayer = game.current_player;
+        if (mySymbol === currentPlayer) {
+            document.getElementById('status').textContent = 'Your turn!';
+        } else {
+            document.getElementById('status').textContent = `Waiting for ${currentPlayer}'s turn`;
+        }
+    });
+
+
+
+
+        socket.on('connect', () => {
+            socket.emit('join', { game_id: gameId, username });
+        });
+        
+        socket.on('player_assigned', (data) => {
+            mySymbol = data.symbol;
+            currentPlayer = data.current_player;
+            document.getElementById('player-symbol').textContent = `You are player: ${mySymbol}`;
+            document.getElementById('player-symbol').className = `${mySymbol.toLowerCase()}-symbol`;
+
+            // Add player usernames to the display
+            updatePlayersDisplay(data);
+            
+            if (mySymbol === currentPlayer) {
+                document.getElementById('status').textContent = 'Your turn!';
+            } else {
+                document.getElementById('status').textContent = `Waiting for ${currentPlayer}'s turn`;
+            }
+        });
+
+        socket.on('game_start', () => {
+            document.getElementById('board').style.display = 'grid';
+            document.getElementById('waiting-message').style.display = 'none';
+        });
+
+        socket.on('game_update', (game) => {
+            // Update board
+            const board = game.board;
+            for (let row = 0; row < 3; row++) {
+                for (let col = 0; col < 3; col++) {
+                    const cell = document.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
+                    cell.textContent = board[row][col];
+                    if (board[row][col] === 'X') {
+                        cell.className = 'cell x-symbol';
+                    } else if (board[row][col] === 'O') {
+                        cell.className = 'cell o-symbol';
+                    } else {
+                        cell.className = 'cell';
+                    }
+                }
+            }
+            
+            // Update status
+            currentPlayer = game.current_player;
+            if (game.status === 'playing') {
+                if (mySymbol === currentPlayer) {
+                    document.getElementById('status').textContent = 'Your turn!';
+                } else {
+                    document.getElementById('status').textContent = `Waiting for ${currentPlayer}'s turn`;
+                }
+            }
+
+            // Update players display
+            updatePlayersDisplay(game);
+        });
+        
+        socket.on('game_over', (data) => {
+            document.getElementById('board').style.display = 'none';
+            const gameOverDiv = document.getElementById('game-over');
+            const gameResult = document.getElementById('game-result');
+            
+            if (data.winner === 'draw') {
+                gameResult.textContent = 'Game ended in a draw!';
+            } else if (data.winner === mySymbol) {
+                gameResult.textContent = 'You won! 🎉';
+            } else {
+                gameResult.textContent = 'You lost! 😢';
+            }
+            
+            gameOverDiv.style.display = 'block';
+        });
+
+        // Other socket event handlers remain unchanged...
+
+        function updatePlayersDisplay(data) {
+            const playersDisplay = document.getElementById('players-display');
+            playersDisplay.innerHTML = ''; // Clear previous data
+
+            // Check if players exist in data
+            if (data && data.players) {
+                data.players.forEach(player => {
+                    const playerDiv = document.createElement('div');
+                    playerDiv.textContent = `${player.username} (${player.symbol})`;
+                    playersDisplay.appendChild(playerDiv);
+                });
+            } else {
+                console.warn("No players data available", data);
+            }
+        }
+        
+        // Handle cell clicks
+        document.querySelectorAll('.cell').forEach(cell => {
+            cell.addEventListener('click', () => {
+                if (mySymbol !== currentPlayer) return;
+
+                // Check if game is still active
+                const gameOverDiv = document.getElementById('game-over');
+                if (gameOverDiv.style.display === 'block') return;
+
+                const row = parseInt(cell.getAttribute('data-row'));
+                const col = parseInt(cell.getAttribute('data-col'));
+                
+                if (cell.textContent === '') {
+                    socket.emit('move', {
+                        game_id: gameId,
+                        row: row,
+                        col: col
+                    });
+                }
+            });
+        });
+        
+        // Handle new game button
+        document.getElementById('new-game').addEventListener('click', () => {
+            socket.emit('restart', { game_id: gameId });
+        });
+    </script>
+</body>
+</html>
